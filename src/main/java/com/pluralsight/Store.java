@@ -1,5 +1,7 @@
 package com.pluralsight;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -55,8 +57,20 @@ public class Store {
      * A17|Wireless Mouse|19.99
      */
     public static void loadInventory(String fileName, ArrayList<Product> inventory) {
-        // TODO: read each line, split on "|",
-        //       create a Product object, and add it to the inventory list
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(fileName));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] productArray = line.split("\\|");
+                inventory.add(new Product(productArray[0], productArray[1], Double.parseDouble(productArray[2])));
+            }
+        } catch (ArrayIndexOutOfBoundsException e){
+            System.err.println("Data Error: A line in the file is corrupt or incomplete.");
+        } catch (java.io.FileNotFoundException e) {
+            System.err.println("File is not found");
+        } catch (java.io.IOException e){
+            System.err.println("An unexpected error occurred while reading the file.");
+        }
     }
 
     /**
@@ -66,8 +80,34 @@ public class Store {
     public static void displayProducts(ArrayList<Product> inventory,
                                        ArrayList<Product> cart,
                                        Scanner scanner) {
-        // TODO: show each product (id, name, price),
-        //       prompt for an id, find that product, add to cart
+        try {
+            boolean done = false;
+
+                System.out.println("=========================================================================================");
+                System.out.println("Id          | Name                               | Price                ");
+                for (int i = inventory.size() - 1; i > 0; i--) {
+                    PrintOut(inventory.get(i));
+                }
+                System.out.println("=========================================================================================");
+                while (!done) {
+                    System.out.println("If you want to buy something write its Id, otherwise write \"no\"");
+                    String ans = scanner.nextLine();
+                    if (ans.equalsIgnoreCase("no")){
+                        done=true;
+                    }else {
+                        Product item = findProductById(ans.toUpperCase(),inventory);
+                        if(item!=null) {
+                            cart.add(item);
+                            System.out.println(item.getName() + " has been added to cart.");
+                        }
+                        else {
+                            System.out.println("Sorry! Id is not found. Please try again.");
+                        }
+                    }
+                }
+        } catch (Exception e) {
+            System.out.println("Something went wrong");
+        }
     }
 
     /**
@@ -75,11 +115,33 @@ public class Store {
      * and offers the option to check out.
      */
     public static void displayCart(ArrayList<Product> cart, Scanner scanner) {
-        // TODO:
-        //   • list each product in the cart
-        //   • compute the total cost
-        //   • ask the user whether to check out (C) or return (X)
-        //   • if C, call checkOut(cart, totalAmount, scanner)
+        try {
+            double total = 0;
+            boolean done = false;
+            System.out.println("=========================================================================================");
+            System.out.println("Id          | Name                               | Price                ");
+            for (int i = cart.size() - 1; i > 0; i--) {
+                PrintOut(cart.get(i));
+                total+=cart.get(i).getPrice();
+            }
+            System.out.println("Your total is: $"+total);
+            System.out.println("=========================================================================================");
+
+            while (!done) {
+                System.out.println("Please choose your option: \"C\" to check out, \"X\" to return.");
+                String ans = scanner.nextLine();
+                if (ans.equalsIgnoreCase("X")){
+                    done=true;
+                }else if(ans.equalsIgnoreCase("C")){
+                    checkOut(cart,total,scanner);
+                    done = true;
+                }else {
+                    System.out.println("Invalid input, please try again");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Something went wrong");
+        }
     }
 
     /**
@@ -92,7 +154,51 @@ public class Store {
     public static void checkOut(ArrayList<Product> cart,
                                 double totalAmount,
                                 Scanner scanner) {
-        // TODO: implement steps listed above
+        boolean isEnough = false;
+        double change = 0;
+        System.out.println("You are going to buy: ");
+        for (int i = 0; i < cart.size();i++){
+            System.out.println(cart.get(i).getName());
+        }
+        System.out.println("Your total is: $" + totalAmount);
+        System.out.println("Do you want to finish?(yes/no)");
+        String ans = scanner.nextLine();
+        if(ans.equalsIgnoreCase("no")){
+            return;
+        }
+        
+        System.out.println("How would you pay?(card/cash)");
+        ans = scanner.nextLine();
+
+        while (!isEnough) {
+            if (ans.equalsIgnoreCase("cash")) {
+                System.out.println("Please inter your amount:");
+                double cash = scanner.nextDouble();
+                scanner.nextLine();
+                if (cash < totalAmount) {
+                    System.out.println("There is not isEnough, please try again");
+                } else if (cash == totalAmount) {
+                    System.out.println("Thank you for the exact amount");
+                    isEnough = true;
+                } else {
+                    change = cash-totalAmount;
+                    System.out.println("Your change is: $" + change);
+                    isEnough = true;
+                }
+            }
+        }
+        System.out.println("Your receipt: ");
+        System.out.println("=========================================================================================");
+        System.out.println("Id          | Name                               | Price                ");
+        for (int i = cart.size() - 1; i > 0; i--) {
+            PrintOut(cart.get(i));
+        }
+        System.out.println("Your total is: $"+totalAmount);
+        if(change!=0){
+            System.out.println("Your change is: $" + change);
+        }
+        System.out.println("Thank you!");
+        System.out.println("=========================================================================================");
     }
 
     /**
@@ -101,8 +207,16 @@ public class Store {
      * @return the matching Product, or null if not found
      */
     public static Product findProductById(String id, ArrayList<Product> inventory) {
-        // TODO: loop over the list and compare ids
+        for (Product product : inventory) {
+            if (product.getId().equals(id)) {
+                return product;
+            }
+        }
         return null;
+    }
+    private static void PrintOut(Product product){
+        String formatString = "%-12s| %-35s| %-12s";
+        System.out.printf((formatString) + "%n", product.getId(), product.getName(), product.getPrice());
     }
 }
 
